@@ -11,11 +11,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="나의 가계부">
     
-    <!-- 안정적인 CDN 사용 -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
-    
     <style>
         * {
             box-sizing: border-box;
@@ -85,18 +80,15 @@
             padding: 1.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .stat-card.income { background: linear-gradient(135deg, #10b981, #059669); }
         .stat-card.expense { background: linear-gradient(135deg, #ef4444, #dc2626); }
         .stat-card.balance { background: linear-gradient(135deg, #3b82f6, #2563eb); }
         .stat-card.negative { background: linear-gradient(135deg, #f97316, #ea580c); }
-        
-        .stat-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
         
         .stat-text p:first-child {
             opacity: 0.9;
@@ -106,6 +98,10 @@
         .stat-text p:last-child {
             font-size: 2rem;
             font-weight: bold;
+        }
+        
+        .stat-icon {
+            font-size: 2rem;
         }
         
         .main-grid {
@@ -127,9 +123,6 @@
             font-weight: bold;
             color: #1f2937;
             margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
         
         .form-group {
@@ -171,9 +164,10 @@
         
         .btn-delete {
             background: #ef4444;
-            padding: 8px;
+            padding: 8px 12px;
             width: auto;
             min-width: auto;
+            font-size: 14px;
         }
         
         .btn-delete:hover {
@@ -219,6 +213,7 @@
             align-items: center;
             gap: 0.75rem;
             margin-bottom: 0.25rem;
+            flex-wrap: wrap;
         }
         
         .transaction-type {
@@ -257,10 +252,14 @@
             color: #dc2626;
         }
         
+        .table-container {
+            overflow-x: auto;
+        }
+        
         .table {
             width: 100%;
             border-collapse: collapse;
-            overflow-x: auto;
+            min-width: 500px;
         }
         
         .table th,
@@ -312,6 +311,10 @@
             padding: 2rem 0;
         }
         
+        .hidden {
+            display: none;
+        }
+        
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 2rem;
@@ -334,345 +337,386 @@
             .transaction-actions {
                 justify-content: space-between;
             }
+            
+            .transaction-meta {
+                gap: 0.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="root">
-        <div style="text-align: center; padding: 2rem; color: #6b7280;">
-            앱을 로딩 중입니다...
+    <div class="container">
+        <div class="header">
+            <h1>💰 나의 가계부</h1>
+            <p>수입과 지출을 기록하고 관리해보세요</p>
+        </div>
+
+        <div class="month-selector">
+            <label for="monthSelect">조회 월:</label>
+            <input type="month" id="monthSelect">
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card income">
+                <div class="stat-text">
+                    <p>총 수입</p>
+                    <p id="totalIncome">₩0</p>
+                </div>
+                <div class="stat-icon">📈</div>
+            </div>
+            
+            <div class="stat-card expense">
+                <div class="stat-text">
+                    <p>총 지출</p>
+                    <p id="totalExpense">₩0</p>
+                </div>
+                <div class="stat-icon">📉</div>
+            </div>
+            
+            <div class="stat-card balance" id="balanceCard">
+                <div class="stat-text">
+                    <p>잔액</p>
+                    <p id="balance">₩0</p>
+                </div>
+                <div class="stat-icon">💰</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="card">
+                <h2>➕ 거래 추가</h2>
+                
+                <div class="form-group">
+                    <label for="typeSelect">구분</label>
+                    <select id="typeSelect">
+                        <option value="지출">지출</option>
+                        <option value="수입">수입</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="categorySelect">카테고리</label>
+                    <select id="categorySelect">
+                        <option value="식비-주식">식비-주식</option>
+                        <option value="식비-외식">식비-외식</option>
+                        <option value="교통비">교통비</option>
+                        <option value="생활용품">생활용품</option>
+                        <option value="의료비">의료비</option>
+                        <option value="문화생활">문화생활</option>
+                        <option value="의류">의류</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="dateInput">날짜</label>
+                    <input type="date" id="dateInput">
+                </div>
+
+                <div class="form-group">
+                    <label for="amountInput">금액 (원)</label>
+                    <input type="number" id="amountInput" placeholder="금액을 입력하세요">
+                </div>
+
+                <div class="form-group">
+                    <label for="descriptionInput">내용</label>
+                    <input type="text" id="descriptionInput" placeholder="거래 내용을 입력하세요">
+                </div>
+
+                <button class="btn" onclick="addTransaction()">추가하기</button>
+            </div>
+
+            <div class="card">
+                <h2>📊 카테고리별 지출 (<span id="currentMonthDisplay"></span>)</h2>
+                <div id="categoryList"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📝 최근 거래 내역</h2>
+            <div id="transactionList"></div>
+        </div>
+
+        <div class="card">
+            <h2>📈 월별 통계</h2>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>월</th>
+                            <th>수입</th>
+                            <th>지출</th>
+                            <th>잔액</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthlyStatsBody">
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+    <script>
+        // 전역 변수
+        let transactions = [];
+        let selectedMonth = new Date().toISOString().slice(0, 7);
         
-        const BudgetApp = () => {
-            const [transactions, setTransactions] = useState([]);
-            const [amount, setAmount] = useState('');
-            const [description, setDescription] = useState('');
-            const [category, setCategory] = useState('식비-주식');
-            const [type, setType] = useState('지출');
-            const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
-            const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
-
-            // 카테고리 옵션
-            const expenseCategories = ['식비-주식', '식비-외식', '교통비', '생활용품', '의료비', '문화생활', '의류', '기타'];
-            const incomeCategories = ['남편급여', '프리랜서 수입', '사업수입', '용돈', '기타'];
-
-            // 로컬 스토리지에서 데이터 로드
-            useEffect(() => {
-                try {
-                    const saved = localStorage.getItem('budgetApp_transactions_v3');
-                    if (saved) {
-                        setTransactions(JSON.parse(saved));
-                    }
-                } catch (e) {
-                    console.log('데이터 로드 실패');
-                }
-            }, []);
-
-            // 데이터 변경시 로컬 스토리지에 저장
-            useEffect(() => {
-                try {
-                    localStorage.setItem('budgetApp_transactions_v3', JSON.stringify(transactions));
-                } catch (e) {
-                    console.log('데이터 저장 실패');
-                }
-            }, [transactions]);
-
-            // 거래 추가
-            const addTransaction = () => {
-                if (!amount || !description.trim()) {
-                    alert('금액과 내용을 모두 입력해주세요!');
-                    return;
-                }
-
-                const newTransaction = {
-                    id: Date.now(),
-                    amount: parseFloat(amount),
-                    description: description.trim(),
-                    category,
-                    type,
-                    date: new Date(selectedDate).toLocaleDateString('ko-KR'),
-                    month: selectedDate.slice(0, 7)
-                };
-
-                setTransactions([newTransaction, ...transactions]);
-                setAmount('');
-                setDescription('');
+        // 카테고리 옵션
+        const expenseCategories = ['식비-주식', '식비-외식', '교통비', '생활용품', '의료비', '문화생활', '의류', '기타'];
+        const incomeCategories = ['남편급여', '프리랜서 수입', '사업수입', '용돈', '기타'];
+        
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 현재 날짜로 초기화
+            document.getElementById('monthSelect').value = selectedMonth;
+            document.getElementById('dateInput').value = new Date().toISOString().slice(0, 10);
+            
+            // 이벤트 리스너 등록
+            document.getElementById('monthSelect').addEventListener('change', function() {
+                selectedMonth = this.value;
+                updateDisplay();
+            });
+            
+            document.getElementById('typeSelect').addEventListener('change', function() {
+                updateCategoryOptions();
+            });
+            
+            // 데이터 로드
+            loadTransactions();
+            updateDisplay();
+        });
+        
+        // 카테고리 옵션 업데이트
+        function updateCategoryOptions() {
+            const typeSelect = document.getElementById('typeSelect');
+            const categorySelect = document.getElementById('categorySelect');
+            const categories = typeSelect.value === '지출' ? expenseCategories : incomeCategories;
+            
+            categorySelect.innerHTML = '';
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categorySelect.appendChild(option);
+            });
+        }
+        
+        // 거래 추가
+        function addTransaction() {
+            const amount = document.getElementById('amountInput').value;
+            const description = document.getElementById('descriptionInput').value.trim();
+            const category = document.getElementById('categorySelect').value;
+            const type = document.getElementById('typeSelect').value;
+            const date = document.getElementById('dateInput').value;
+            
+            if (!amount || !description) {
+                alert('금액과 내용을 모두 입력해주세요!');
+                return;
+            }
+            
+            const newTransaction = {
+                id: Date.now(),
+                amount: parseFloat(amount),
+                description: description,
+                category: category,
+                type: type,
+                date: new Date(date).toLocaleDateString('ko-KR'),
+                month: date.slice(0, 7)
             };
-
-            // 거래 삭제
-            const deleteTransaction = (id) => {
-                if (confirm('이 거래를 삭제하시겠습니까?')) {
-                    setTransactions(transactions.filter(t => t.id !== id));
-                }
-            };
-
-            // 선택한 월의 거래만 필터링
+            
+            transactions.unshift(newTransaction);
+            saveTransactions();
+            updateDisplay();
+            
+            // 폼 초기화
+            document.getElementById('amountInput').value = '';
+            document.getElementById('descriptionInput').value = '';
+        }
+        
+        // 거래 삭제
+        function deleteTransaction(id) {
+            if (confirm('이 거래를 삭제하시겠습니까?')) {
+                transactions = transactions.filter(t => t.id !== id);
+                saveTransactions();
+                updateDisplay();
+            }
+        }
+        
+        // 화면 업데이트
+        function updateDisplay() {
+            updateStats();
+            updateCategoryStats();
+            updateTransactionList();
+            updateMonthlyStats();
+            document.getElementById('currentMonthDisplay').textContent = selectedMonth;
+        }
+        
+        // 통계 업데이트
+        function updateStats() {
             const monthlyTransactions = transactions.filter(t => t.month === selectedMonth);
-
-            // 총 수입, 지출, 잔액 계산 (선택한 월 기준)
+            
             const totalIncome = monthlyTransactions
                 .filter(t => t.type === '수입')
                 .reduce((sum, t) => sum + t.amount, 0);
-
+                
             const totalExpense = monthlyTransactions
                 .filter(t => t.type === '지출')
                 .reduce((sum, t) => sum + t.amount, 0);
-
-            const balance = totalIncome - totalExpense;
-
-            // 카테고리별 지출 통계 (선택한 월 기준)
-            const expenseByCategory = expenseCategories.map(cat => {
-                const categoryTotal = monthlyTransactions
-                    .filter(t => t.type === '지출' && t.category === cat)
-                    .reduce((sum, t) => sum + t.amount, 0);
-                return { category: cat, amount: categoryTotal };
-            }).filter(item => item.amount > 0);
-
-            // 월별 통계 데이터
-            const getMonthlyStats = () => {
-                const monthlyStats = {};
-                transactions.forEach(transaction => {
-                    const month = transaction.month;
-                    if (!monthlyStats[month]) {
-                        monthlyStats[month] = { income: 0, expense: 0 };
-                    }
-                    if (transaction.type === '수입') {
-                        monthlyStats[month].income += transaction.amount;
-                    } else {
-                        monthlyStats[month].expense += transaction.amount;
-                    }
-                });
                 
-                return Object.entries(monthlyStats)
-                    .map(([month, data]) => ({
-                        month,
-                        ...data,
-                        balance: data.income - data.expense
-                    }))
-                    .sort((a, b) => b.month.localeCompare(a.month));
-            };
-
-            const monthlyStats = getMonthlyStats();
-
-            return (
-                <div className="container">
-                    <div className="header">
-                        <h1>💰 나의 가계부</h1>
-                        <p>수입과 지출을 기록하고 관리해보세요</p>
-                    </div>
-
-                    <div className="month-selector">
-                        <label>조회 월:</label>
-                        <input
-                            type="month"
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="stats-grid">
-                        <div className="stat-card income">
-                            <div className="stat-content">
-                                <div className="stat-text">
-                                    <p>총 수입</p>
-                                    <p>₩{totalIncome.toLocaleString()}</p>
-                                </div>
-                                <div>📈</div>
-                            </div>
+            const balance = totalIncome - totalExpense;
+            
+            document.getElementById('totalIncome').textContent = `₩${totalIncome.toLocaleString()}`;
+            document.getElementById('totalExpense').textContent = `₩${totalExpense.toLocaleString()}`;
+            document.getElementById('balance').textContent = `₩${balance.toLocaleString()}`;
+            
+            // 잔액 카드 색상 변경
+            const balanceCard = document.getElementById('balanceCard');
+            if (balance >= 0) {
+                balanceCard.className = 'stat-card balance';
+            } else {
+                balanceCard.className = 'stat-card negative';
+            }
+        }
+        
+        // 카테고리별 통계 업데이트
+        function updateCategoryStats() {
+            const monthlyTransactions = transactions.filter(t => t.month === selectedMonth);
+            const categoryStats = {};
+            
+            monthlyTransactions
+                .filter(t => t.type === '지출')
+                .forEach(t => {
+                    categoryStats[t.category] = (categoryStats[t.category] || 0) + t.amount;
+                });
+            
+            const categoryList = document.getElementById('categoryList');
+            
+            if (Object.keys(categoryStats).length === 0) {
+                categoryList.innerHTML = '<div class="empty-state">선택한 월에 지출 내역이 없습니다.</div>';
+                return;
+            }
+            
+            categoryList.innerHTML = '';
+            Object.entries(categoryStats).forEach(([category, amount]) => {
+                const div = document.createElement('div');
+                div.className = 'category-item';
+                div.innerHTML = `
+                    <span>${category}</span>
+                    <span>₩${amount.toLocaleString()}</span>
+                `;
+                categoryList.appendChild(div);
+            });
+        }
+        
+        // 거래 목록 업데이트
+        function updateTransactionList() {
+            const monthlyTransactions = transactions.filter(t => t.month === selectedMonth);
+            const transactionList = document.getElementById('transactionList');
+            
+            if (monthlyTransactions.length === 0) {
+                transactionList.innerHTML = '<div class="empty-state">선택한 월에 거래 내역이 없습니다.</div>';
+                return;
+            }
+            
+            transactionList.innerHTML = '';
+            monthlyTransactions.slice(0, 10).forEach(transaction => {
+                const div = document.createElement('div');
+                div.className = 'transaction-item';
+                div.innerHTML = `
+                    <div class="transaction-info">
+                        <div class="transaction-meta">
+                            <span class="transaction-type ${transaction.type === '수입' ? 'income' : 'expense'}">
+                                ${transaction.type}
+                            </span>
+                            <span style="font-weight: 500; color: #111827;">${transaction.description}</span>
+                            <span style="font-size: 0.875rem; color: #6b7280;">${transaction.category}</span>
                         </div>
-                        
-                        <div className="stat-card expense">
-                            <div className="stat-content">
-                                <div className="stat-text">
-                                    <p>총 지출</p>
-                                    <p>₩{totalExpense.toLocaleString()}</p>
-                                </div>
-                                <div>📉</div>
-                            </div>
-                        </div>
-                        
-                        <div className={`stat-card ${balance >= 0 ? 'balance' : 'negative'}`}>
-                            <div className="stat-content">
-                                <div className="stat-text">
-                                    <p>잔액</p>
-                                    <p>₩{balance.toLocaleString()}</p>
-                                </div>
-                                <div>💰</div>
-                            </div>
-                        </div>
+                        <p style="font-size: 0.875rem; color: #6b7280;">${transaction.date}</p>
                     </div>
-
-                    <div className="main-grid">
-                        <div className="card">
-                            <h2>➕ 거래 추가</h2>
-                            
-                            <div className="form-group">
-                                <label>구분</label>
-                                <select 
-                                    value={type} 
-                                    onChange={(e) => {
-                                        setType(e.target.value);
-                                        if (e.target.value === '지출') {
-                                            setCategory('식비-주식');
-                                        } else {
-                                            setCategory('남편급여');
-                                        }
-                                    }}
-                                >
-                                    <option value="지출">지출</option>
-                                    <option value="수입">수입</option>
-                                </select>
-                            </div>
-
-                            <div className="form-group">
-                                <label>카테고리</label>
-                                <select 
-                                    value={category} 
-                                    onChange={(e) => setCategory(e.target.value)}
-                                >
-                                    {(type === '지출' ? expenseCategories : incomeCategories).map(cat => (
-                                        <option key={cat} value={cat}>{cat}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="form-group">
-                                <label>날짜</label>
-                                <input
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={(e) => setSelectedDate(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label>금액 (원)</label>
-                                <input
-                                    type="number"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    placeholder="금액을 입력하세요"
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label>내용</label>
-                                <input
-                                    type="text"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="거래 내용을 입력하세요"
-                                />
-                            </div>
-
-                            <button className="btn" onClick={addTransaction}>
-                                추가하기
-                            </button>
-                        </div>
-
-                        <div className="card">
-                            <h2>📊 카테고리별 지출 ({selectedMonth})</h2>
-                            {expenseByCategory.length > 0 ? (
-                                <div>
-                                    {expenseByCategory.map((item, index) => (
-                                        <div key={index} className="category-item">
-                                            <span>{item.category}</span>
-                                            <span>₩{item.amount.toLocaleString()}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="empty-state">선택한 월에 지출 내역이 없습니다.</div>
-                            )}
-                        </div>
+                    <div class="transaction-actions">
+                        <span class="transaction-amount ${transaction.type === '수입' ? 'income' : 'expense'}">
+                            ${transaction.type === '수입' ? '+' : '-'}₩${transaction.amount.toLocaleString()}
+                        </span>
+                        <button class="btn btn-delete" onclick="deleteTransaction(${transaction.id})">
+                            🗑️
+                        </button>
                     </div>
-
-                    <div className="card">
-                        <h2>📝 최근 거래 내역</h2>
-                        {monthlyTransactions.length > 0 ? (
-                            <div>
-                                {monthlyTransactions.slice(0, 10).map((transaction) => (
-                                    <div key={transaction.id} className="transaction-item">
-                                        <div className="transaction-info">
-                                            <div className="transaction-meta">
-                                                <span className={`transaction-type ${transaction.type === '수입' ? 'income' : 'expense'}`}>
-                                                    {transaction.type}
-                                                </span>
-                                                <span style={{fontWeight: '500', color: '#111827'}}>{transaction.description}</span>
-                                                <span style={{fontSize: '0.875rem', color: '#6b7280'}}>{transaction.category}</span>
-                                            </div>
-                                            <p style={{fontSize: '0.875rem', color: '#6b7280'}}>{transaction.date}</p>
-                                        </div>
-                                        <div className="transaction-actions">
-                                            <span className={`transaction-amount ${transaction.type === '수입' ? 'income' : 'expense'}`}>
-                                                {transaction.type === '수입' ? '+' : '-'}₩{transaction.amount.toLocaleString()}
-                                            </span>
-                                            <button
-                                                onClick={() => deleteTransaction(transaction.id)}
-                                                className="btn btn-delete"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="empty-state">선택한 월에 거래 내역이 없습니다.</div>
-                        )}
-                    </div>
-
-                    <div className="card">
-                        <h2>📈 월별 통계</h2>
-                        {monthlyStats.length > 0 ? (
-                            <div style={{overflowX: 'auto'}}>
-                                <table className="table">
-                                    <thead>
-                                        <tr>
-                                            <th>월</th>
-                                            <th>수입</th>
-                                            <th>지출</th>
-                                            <th>잔액</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {monthlyStats.map((stat) => (
-                                            <tr key={stat.month}>
-                                                <td style={{fontWeight: '500'}}>
-                                                    {new Date(stat.month + '-01').toLocaleDateString('ko-KR', { 
-                                                        year: 'numeric', 
-                                                        month: 'long' 
-                                                    })}
-                                                </td>
-                                                <td className="income">
-                                                    ₩{stat.income.toLocaleString()}
-                                                </td>
-                                                <td className="expense">
-                                                    ₩{stat.expense.toLocaleString()}
-                                                </td>
-                                                <td className={`balance ${stat.balance >= 0 ? 'positive' : 'negative'}`}>
-                                                    {stat.balance >= 0 ? '+' : ''}₩{stat.balance.toLocaleString()}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <div className="empty-state">아직 거래 내역이 없습니다. 첫 번째 거래를 추가해보세요!</div>
-                        )}
-                    </div>
-                </div>
-            );
-        };
-
-        // React 앱 렌더링
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(BudgetApp));
+                `;
+                transactionList.appendChild(div);
+            });
+        }
+        
+        // 월별 통계 업데이트
+        function updateMonthlyStats() {
+            const monthlyStats = {};
+            
+            transactions.forEach(transaction => {
+                const month = transaction.month;
+                if (!monthlyStats[month]) {
+                    monthlyStats[month] = { income: 0, expense: 0 };
+                }
+                if (transaction.type === '수입') {
+                    monthlyStats[month].income += transaction.amount;
+                } else {
+                    monthlyStats[month].expense += transaction.amount;
+                }
+            });
+            
+            const statsArray = Object.entries(monthlyStats)
+                .map(([month, data]) => ({
+                    month,
+                    ...data,
+                    balance: data.income - data.expense
+                }))
+                .sort((a, b) => b.month.localeCompare(a.month));
+            
+            const tbody = document.getElementById('monthlyStatsBody');
+            
+            if (statsArray.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #6b7280; padding: 2rem;">아직 거래 내역이 없습니다.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            statsArray.forEach(stat => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: 500;">
+                        ${new Date(stat.month + '-01').toLocaleDateString('ko-KR', { 
+                            year: 'numeric', 
+                            month: 'long' 
+                        })}
+                    </td>
+                    <td class="income">₩${stat.income.toLocaleString()}</td>
+                    <td class="expense">₩${stat.expense.toLocaleString()}</td>
+                    <td class="balance ${stat.balance >= 0 ? 'positive' : 'negative'}">
+                        ${stat.balance >= 0 ? '+' : ''}₩${stat.balance.toLocaleString()}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        // 데이터 저장
+        function saveTransactions() {
+            try {
+                localStorage.setItem('budgetApp_transactions_v4', JSON.stringify(transactions));
+            } catch (e) {
+                console.log('데이터 저장 실패');
+            }
+        }
+        
+        // 데이터 로드
+        function loadTransactions() {
+            try {
+                const saved = localStorage.getItem('budgetApp_transactions_v4');
+                if (saved) {
+                    transactions = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.log('데이터 로드 실패');
+            }
+        }
     </script>
 </body>
 </html>
