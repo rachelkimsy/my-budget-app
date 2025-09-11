@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 나의 가계부 - 최종버전</title>
+    
+    <!-- PWA 설정 -->
+    <meta name="theme-color" content="#3B82F6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="나의 가계부">
+    
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?v=3.4.1"></script>
+    
+    <style>
+        body { 
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #dbeafe 0%, #c7d2fe 100%);
+            min-height: 100vh;
+        }
+        .app-container {
+            background: linear-gradient(135deg, #dbeafe 0%, #c7d2fe 100%);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+        }
+        .green-card { background: linear-gradient(135deg, #10b981, #059669); }
+        .red-card { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .blue-card { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .orange-card { background: linear-gradient(135deg, #f97316, #ea580c); }
+        
+        input, select, button {
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            width: 100%;
+            font-size: 16px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .delete-btn {
+            background: #ef4444;
+            padding: 8px;
+            width: auto;
+        }
+        .delete-btn:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // 아이콘 컴포넌트들
+        const Plus = () => (
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+        );
+        
+        const Trash2 = () => (
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        );
+        
+        const TrendingUp = () => (
+            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+        );
+        
+        const TrendingDown = () => (
+            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+            </svg>
+        );
+        
+        const DollarSign = () => (
+            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+            </svg>
+        );
+
+        const BudgetApp = () => {
+            const [transactions, setTransactions] = useState([]);
+            const [amount, setAmount] = useState('');
+            const [description, setDescription] = useState('');
+            const [category, setCategory] = useState('식비-주식');
+            const [type, setType] = useState('지출');
+            const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+
+            // 카테고리 옵션
+            const expenseCategories = ['식비-주식', '식비-외식', '교통비', '생활용품', '의료비', '문화생활', '의류', '기타'];
+            const incomeCategories = ['남편급여', '프리랜서 수입', '사업수입', '용돈', '기타'];
+
+            // 로컬 스토리지에서 데이터 로드
+            useEffect(() => {
+                try {
+                    const saved = localStorage.getItem('budgetApp_transactions_v2');
+                    if (saved) {
+                        setTransactions(JSON.parse(saved));
+                    }
+                } catch (e) {
+                    console.log('데이터 로드 실패');
+                }
+            }, []);
+
+            // 데이터 변경시 로컬 스토리지에 저장
+            useEffect(() => {
+                try {
+                    localStorage.setItem('budgetApp_transactions_v2', JSON.stringify(transactions));
+                } catch (e) {
+                    console.log('데이터 저장 실패');
+                }
+            }, [transactions]);
+
+            // 거래 추가
+            const addTransaction = () => {
+                if (!amount || !description.trim()) {
+                    alert('금액과 내용을 모두 입력해주세요!');
+                    return;
+                }
+
+                const newTransaction = {
+                    id: Date.now(),
+                    amount: parseFloat(amount),
+                    description: description.trim(),
+                    category,
+                    type,
+                    date: new Date().toLocaleDateString('ko-KR'),
+                    month: new Date().toISOString().slice(0, 7)
+                };
+
+                setTransactions([newTransaction, ...transactions]);
+                setAmount('');
+                setDescription('');
+            };
+
+            // 거래 삭제
+            const deleteTransaction = (id) => {
+                if (confirm('이 거래를 삭제하시겠습니까?')) {
+                    setTransactions(transactions.filter(t => t.id !== id));
+                }
+            };
+
+            // 선택한 월의 거래만 필터링
+            const monthlyTransactions = transactions.filter(t => t.month === selectedMonth);
+
+            // 총 수입, 지출, 잔액 계산 (선택한 월 기준)
+            const totalIncome = monthlyTransactions
+                .filter(t => t.type === '수입')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const totalExpense = monthlyTransactions
+                .filter(t => t.type === '지출')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const balance = totalIncome - totalExpense;
+
+            // 카테고리별 지출 통계 (선택한 월 기준)
+            const expenseByCategory = expenseCategories.map(cat => {
+                const categoryTotal = monthlyTransactions
+                    .filter(t => t.type === '지출' && t.category === cat)
+                    .reduce((sum, t) => sum + t.amount, 0);
+                return { category: cat, amount: categoryTotal };
+            }).filter(item => item.amount > 0);
+
+            // 월별 통계 데이터
+            const getMonthlyStats = () => {
+                const monthlyStats = {};
+                transactions.forEach(transaction => {
+                    const month = transaction.month;
+                    if (!monthlyStats[month]) {
+                        monthlyStats[month] = { income: 0, expense: 0 };
+                    }
+                    if (transaction.type === '수입') {
+                        monthlyStats[month].income += transaction.amount;
+                    } else {
+                        monthlyStats[month].expense += transaction.amount;
+                    }
+                });
+                
+                return Object.entries(monthlyStats)
+                    .map(([month, data]) => ({
+                        month,
+                        ...data,
+                        balance: data.income - data.expense
+                    }))
+                    .sort((a, b) => b.month.localeCompare(a.month));
+            };
+
+            const monthlyStats = getMonthlyStats();
+
+            return (
+                <div className="app-container">
+                    <div style={{maxWidth: '1200px', margin: '0 auto'}}>
+                        {/* 헤더 */}
+                        <div style={{textAlign: 'center', marginBottom: '2rem'}}>
+                            <h1 style={{fontSize: '2.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem'}}>
+                                💰 나의 가계부 (최종)
+                            </h1>
+                            <p style={{color: '#6b7280'}}>수입과 지출을 기록하고 관리해보세요</p>
+                        </div>
+
+                        {/* 월 선택 */}
+                        <div style={{textAlign: 'center', marginBottom: '1.5rem'}}>
+                            <label style={{fontSize: '1.125rem', fontWeight: '500', color: '#374151', marginRight: '0.75rem'}}>
+                                조회 월:
+                            </label>
+                            <input
+                                type="month"
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(e.target.value)}
+                                style={{display: 'inline-block', width: 'auto', fontSize: '1.125rem'}}
+                            />
+                        </div>
+
+                        {/* 잔액 카드들 */}
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem'}}>
+                            <div className="stat-card green-card">
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                    <div>
+                                        <p style={{opacity: 0.9, marginBottom: '0.5rem'}}>총 수입</p>
+                                        <p style={{fontSize: '2rem', fontWeight: 'bold', margin: 0}}>₩{totalIncome.toLocaleString()}</p>
+                                    </div>
+                                    <TrendingUp />
+                                </div>
+                            </div>
+                            
+                            <div className="stat-card red-card">
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                    <div>
+                                        <p style={{opacity: 0.9, marginBottom: '0.5rem'}}>총 지출</p>
+                                        <p style={{fontSize: '2rem', fontWeight: 'bold', margin: 0}}>₩{totalExpense.toLocaleString()}</p>
+                                    </div>
+                                    <TrendingDown />
+                                </div>
+                            </div>
+                            
+                            <div className={`stat-card ${balance >= 0 ? 'blue-card' : 'orange-card'}`}>
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                    <div>
+                                        <p style={{opacity: 0.9, marginBottom: '0.5rem'}}>잔액</p>
+                                        <p style={{fontSize: '2rem', fontWeight: 'bold', margin: 0}}>₩{balance.toLocaleString()}</p>
+                                    </div>
+                                    <DollarSign />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem'}}>
+                            {/* 거래 입력 폼 */}
+                            <div className="card">
+                                <h2 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                                    <Plus />
+                                    거래 추가
+                                </h2>
+                                
+                                <div style={{display: 'grid', gap: '1rem'}}>
+                                    <div>
+                                        <label style={{display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem'}}>구분</label>
+                                        <select 
+                                            value={type} 
+                                            onChange={(e) => {
+                                                setType(e.target.value);
+                                                if (e.target.value === '지출') {
+                                                    setCategory('식비-주식');
+                                                } else {
+                                                    setCategory('남편급여');
+                                                }
+                                            }}
+                                        >
+                                            <option value="지출">지출</option>
+                                            <option value="수입">수입</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label style={{display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem'}}>카테고리</label>
+                                        <select 
+                                            value={category} 
+                                            onChange={(e) => setCategory(e.target.value)}
+                                        >
+                                            {(type === '지출' ? expenseCategories : incomeCategories).map(cat => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label style={{display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem'}}>금액 (원)</label>
+                                        <input
+                                            type="number"
+                                            value={amount}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            placeholder="금액을 입력하세요"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem'}}>내용</label>
+                                        <input
+                                            type="text"
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            placeholder="거래 내용을 입력하세요"
+                                        />
+                                    </div>
+
+                                    <button onClick={addTransaction}>
+                                        추가하기
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 카테고리별 지출 */}
+                            <div className="card">
+                                <h2 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
+                                    카테고리별 지출 ({selectedMonth})
+                                </h2>
+                                {expenseByCategory.length > 0 ? (
+                                    <div style={{display: 'grid', gap: '0.75rem'}}>
+                                        {expenseByCategory.map((item, index) => (
+                                            <div key={index} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '8px'}}>
+                                                <span style={{fontWeight: '500', color: '#374151'}}>{item.category}</span>
+                                                <span style={{color: '#dc2626', fontWeight: 'bold'}}>₩{item.amount.toLocaleString()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p style={{color: '#6b7280', textAlign: 'center', padding: '2rem 0'}}>선택한 월에 지출 내역이 없습니다.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* 최근 거래 내역 */}
+                        <div className="card">
+                            <h2 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
+                                최근 거래 내역
+                            </h2>
+                            {monthlyTransactions.length > 0 ? (
+                                <div style={{display: 'grid', gap: '0.5rem'}}>
+                                    {monthlyTransactions.slice(0, 10).map((transaction) => (
+                                        <div key={transaction.id} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '8px'}}>
+                                            <div style={{flex: 1}}>
+                                                <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem'}}>
+                                                    <span style={{
+                                                        padding: '0.25rem 0.5rem', 
+                                                        borderRadius: '4px', 
+                                                        fontSize: '0.75rem', 
+                                                        fontWeight: '500',
+                                                        backgroundColor: transaction.type === '수입' ? '#dcfce7' : '#fee2e2',
+                                                        color: transaction.type === '수입' ? '#166534' : '#991b1b'
+                                                    }}>
+                                                        {transaction.type}
+                                                    </span>
+                                                    <span style={{fontWeight: '500', color: '#111827'}}>{transaction.description}</span>
+                                                    <span style={{fontSize: '0.875rem', color: '#6b7280'}}>{transaction.category}</span>
+                                                </div>
+                                                <p style={{fontSize: '0.875rem', color: '#6b7280', margin: 0}}>{transaction.date}</p>
+                                            </div>
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+                                                <span style={{
+                                                    fontWeight: 'bold', 
+                                                    fontSize: '1.125rem',
+                                                    color: transaction.type === '수입' ? '#059669' : '#dc2626'
+                                                }}>
+                                                    {transaction.type === '수입' ? '+' : '-'}₩{transaction.amount.toLocaleString()}
+                                                </span>
+                                                <button
+                                                    onClick={() => deleteTransaction(transaction.id)}
+                                                    className="delete-btn"
+                                                >
+                                                    <Trash2 />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p style={{color: '#6b7280', textAlign: 'center', padding: '2rem 0'}}>선택한 월에 거래 내역이 없습니다.</p>
+                            )}
+                        </div>
+
+                        {/* 월별 통계 */}
+                        <div className="card">
+                            <h2 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>월별 통계</h2>
+                            {monthlyStats.length > 0 ? (
+                                <div style={{overflowX: 'auto'}}>
+                                    <table style={{width: '100%', borderCollapse: 'collapse'}}>
+                                        <thead>
+                                            <tr style={{borderBottom: '2px solid #e5e7eb'}}>
+                                                <th style={{textAlign: 'left', padding: '0.75rem 1rem', fontWeight: '600', color: '#374151'}}>월</th>
+                                                <th style={{textAlign: 'right', padding: '0.75rem 1rem', fontWeight: '600', color: '#374151'}}>수입</th>
+                                                <th style={{textAlign: 'right', padding: '0.75rem 1rem', fontWeight: '600', color: '#374151'}}>지출</th>
+                                                <th style={{textAlign: 'right', padding: '0.75rem 1rem', fontWeight: '600', color: '#374151'}}>잔액</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {monthlyStats.map((stat) => (
+                                                <tr key={stat.month} style={{borderBottom: '1px solid #f3f4f6'}}>
+                                                    <td style={{padding: '0.75rem 1rem', fontWeight: '500', color: '#111827'}}>
+                                                        {new Date(stat.month + '-01').toLocaleDateString('ko-KR', { 
+                                                            year: 'numeric', 
+                                                            month: 'long' 
+                                                        })}
+                                                    </td>
+                                                    <td style={{padding: '0.75rem 1rem', textAlign: 'right', color: '#059669', fontWeight: 'bold'}}>
+                                                        ₩{stat.income.toLocaleString()}
+                                                    </td>
+                                                    <td style={{padding: '0.75rem 1rem', textAlign: 'right', color: '#dc2626', fontWeight: 'bold'}}>
+                                                        ₩{stat.expense.toLocaleString()}
+                                                    </td>
+                                                    <td style={{
+                                                        padding: '0.75rem 1rem', 
+                                                        textAlign: 'right', 
+                                                        fontWeight: 'bold',
+                                                        color: stat.balance >= 0 ? '#2563eb' : '#ea580c'
+                                                    }}>
+                                                        {stat.balance >= 0 ? '+' : ''}₩{stat.balance.toLocaleString()}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p style={{color: '#6b7280', textAlign: 'center', padding: '2rem 0'}}>아직 거래 내역이 없습니다. 첫 번째 거래를 추가해보세요!</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<BudgetApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
