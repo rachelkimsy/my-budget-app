@@ -460,7 +460,7 @@
                         <option value="생활용품">생활용품</option>
                         <option value="의료비">의료비</option>
                         <option value="문화생활">문화생활</option>
-                        <option value="의류">의류</option>
+                        <option value="반려동물">반려동물</option>
                         <option value="기타">기타</option>
                     </select>
                 </div>
@@ -558,6 +558,8 @@
                 option.textContent = category;
                 categorySelect.appendChild(option);
             });
+            
+            console.log('카테고리 업데이트됨:', categories);
         }
         
         // 거래 추가
