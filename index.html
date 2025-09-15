@@ -490,7 +490,7 @@
         </div>
 
         <div class="card">
-            <h2>📝 최근 거래 내역</h2>
+            <h2>📝 최근 거래 내역 (최근 5개)</h2>
             <div id="transactionList"></div>
         </div>
 
@@ -772,19 +772,48 @@
         // 데이터 저장
         function saveTransactions() {
             try {
+                // 여러 키로 백업 저장
+                localStorage.setItem('budgetApp_transactions_v5', JSON.stringify(transactions));
+                localStorage.setItem('budgetApp_transactions_v4', JSON.stringify(transactions));
+                localStorage.setItem('budgetApp_transactions_v3', JSON.stringify(transactions));
                 localStorage.setItem('budgetApp_transactions_github', JSON.stringify(transactions));
             } catch (e) {
                 console.log('데이터 저장 실패:', e);
             }
         }
         
-        // 데이터 로드
+        // 데이터 로드 (기존 데이터 우선 검색)
         function loadTransactions() {
             try {
-                const saved = localStorage.getItem('budgetApp_transactions_github');
-                if (saved) {
-                    transactions = JSON.parse(saved);
-                    console.log('저장된 데이터를 불러왔습니다:', transactions.length + '개의 거래');
+                // 기존에 사용했던 모든 키를 확인해서 데이터 복구
+                const possibleKeys = [
+                    'budgetApp_transactions_v5',
+                    'budgetApp_transactions_v4', 
+                    'budgetApp_transactions_v3',
+                    'budgetApp_transactions_v2',
+                    'budgetApp_transactions_github'
+                ];
+                
+                let loadedData = null;
+                let usedKey = '';
+                
+                for (let key of possibleKeys) {
+                    const saved = localStorage.getItem(key);
+                    if (saved) {
+                        loadedData = JSON.parse(saved);
+                        usedKey = key;
+                        console.log('데이터를 복구했습니다:', key, '에서', loadedData.length, '개의 거래');
+                        break;
+                    }
+                }
+                
+                if (loadedData) {
+                    transactions = loadedData;
+                    // 데이터를 모든 키로 백업
+                    saveTransactions();
+                    console.log('기존 데이터가 안전하게 복구되었습니다!');
+                } else {
+                    console.log('새로운 사용자입니다. 빈 데이터로 시작합니다.');
                 }
             } catch (e) {
                 console.log('데이터 로드 실패:', e);
