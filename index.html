@@ -461,6 +461,7 @@
                         <option value="의료비">의료비</option>
                         <option value="문화생활">문화생활</option>
                         <option value="반려동물">반려동물</option>
+                        <option value="반려동물">반려동물</option>
                         <option value="기타">기타</option>
                     </select>
                 </div>
@@ -519,7 +520,7 @@
         let selectedMonth = new Date().toISOString().slice(0, 7);
         
         // 카테고리 옵션
-        const expenseCategories = ['식비-주식', '식비-외식', '교통비', '생활용품', '의료비', '문화생활', '의류', '기타'];
+        const expenseCategories = ['식비-주식', '식비-외식', '교통비', '생활용품', '의료비', '문화생활', '반려동물', '기타'];
         const incomeCategories = ['남편급여', '프리랜서 수입', '사업수입', '용돈', '기타'];
         
         // DOM 로드 완료 후 실행
@@ -689,7 +690,7 @@
             }
             
             transactionList.innerHTML = '';
-            monthlyTransactions.slice(0, 10).forEach(function(transaction) {
+            monthlyTransactions.slice(0, 5).forEach(function(transaction) {
                 const div = document.createElement('div');
                 div.className = 'transaction-item';
                 
