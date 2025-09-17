@@ -411,9 +411,11 @@
             transition: all 0.2s;
         }
         
-        .close-btn:hover {
-            background: #f3f4f6;
-            color: #1f2937;
+        .empty-state {
+            color: #6b7280;
+            text-align: center;
+            padding: 3rem 1rem;
+            font-size: 1rem;
         }
         
         @media (max-width: 768px) {
@@ -467,17 +469,17 @@
         </div>
 
         <div class="stats-grid">
-            <div class="stat-card income">
+            <div class="stat-card income" onclick="showDetailModal('수입')">
                 <div class="stat-text">
-                    <p>총 수입</p>
+                    <p>총 수입 (클릭하여 상세보기)</p>
                     <p id="totalIncome">₩0</p>
                 </div>
                 <div class="stat-icon">📈</div>
             </div>
             
-            <div class="stat-card expense">
+            <div class="stat-card expense" onclick="showDetailModal('지출')">
                 <div class="stat-text">
-                    <p>총 지출</p>
+                    <p>총 지출 (클릭하여 상세보기)</p>
                     <p id="totalExpense">₩0</p>
                 </div>
                 <div class="stat-icon">📉</div>
@@ -564,6 +566,17 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- 상세 내역 모달 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle"></h3>
+                <button class="close-btn" onclick="closeDetailModal()">✕</button>
+            </div>
+            <div id="modalContent"></div>
         </div>
     </div>
 
@@ -729,6 +742,72 @@
                 categoryList.appendChild(div);
             });
         }
+        
+        // 상세 내역 모달 표시
+        function showDetailModal(type) {
+            const monthlyTransactions = transactions.filter(function(t) {
+                return t.month === selectedMonth && t.type === type;
+            });
+            
+            const modal = document.getElementById('detailModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+            
+            modalTitle.textContent = selectedMonth + ' ' + type + ' 상세 내역';
+            
+            if (monthlyTransactions.length === 0) {
+                modalContent.innerHTML = '<div class="empty-state">해당 월에 ' + type + ' 내역이 없습니다.</div>';
+            } else {
+                let content = '<div>';
+                monthlyTransactions.forEach(function(transaction) {
+                    const typeClass = transaction.type === '수입' ? 'income' : 'expense';
+                    const amountPrefix = transaction.type === '수입' ? '+' : '-';
+                    
+                    content += 
+                        '<div class="transaction-item" style="margin-bottom: 1rem;">' +
+                            '<div class="transaction-info">' +
+                                '<div class="transaction-meta">' +
+                                    '<span class="transaction-type ' + typeClass + '">' + transaction.type + '</span>' +
+                                    '<span style="font-weight: 500; color: #111827;">' + transaction.description + '</span>' +
+                                    '<span style="font-size: 0.875rem; color: #6b7280;">' + transaction.category + '</span>' +
+                                '</div>' +
+                                '<p style="font-size: 0.875rem; color: #6b7280;">' + transaction.date + '</p>' +
+                            '</div>' +
+                            '<div class="transaction-actions">' +
+                                '<span class="transaction-amount ' + typeClass + '">' +
+                                    amountPrefix + '₩' + transaction.amount.toLocaleString() +
+                                '</span>' +
+                                '<button class="btn btn-delete" onclick="deleteTransaction(' + transaction.id + '); closeDetailModal(); updateDisplay();">🗑️</button>' +
+                            '</div>' +
+                        '</div>';
+                });
+                
+                const total = monthlyTransactions.reduce(function(sum, t) { return sum + t.amount; }, 0);
+                content += '<div style="border-top: 2px solid #e5e7eb; padding-top: 1rem; margin-top: 1rem; text-align: center;">';
+                content += '<strong style="font-size: 1.25rem; color: ' + (type === '수입' ? '#059669' : '#dc2626') + ';">';
+                content += '총 ' + type + ': ' + (type === '수입' ? '+' : '-') + '₩' + total.toLocaleString();
+                content += '</strong></div>';
+                content += '</div>';
+                
+                modalContent.innerHTML = content;
+            }
+            
+            modal.classList.add('show');
+        }
+        
+        // 모달 닫기
+        function closeDetailModal() {
+            const modal = document.getElementById('detailModal');
+            modal.classList.remove('show');
+        }
+        
+        // 모달 외부 클릭시 닫기
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target === modal) {
+                closeDetailModal();
+            }
+        });
         
         // 거래 목록 업데이트
         function updateTransactionList() {
